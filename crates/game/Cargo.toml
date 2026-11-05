@@ -1,0 +1,80 @@
+[package]
+name = "wiiparty_game"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+publish = false
+
+[features]
+host-options=["host-window-mode","wprt-hw/rust-video-adapter","wprt-hw/rust-options-window"]
+host-window-mode=["host-source-geometry","wprt/rust-settings"]
+host-source-geometry = ["host-source-keyboard","wprt-hw/rust-video-transport"]
+host-source-keyboard = ["host-controller","wprt-hw/rust-host-keyboard"]
+host-controller = ["host-input-grip","wprt-hw/rust-host-gamepad"]
+host-gpu-bridge = ["host"]
+host-input-grip=["host","wprt-hw/rust-host-io","wprt-hw/rust-host-sample-adapter"]
+bevy-audio-host=["wprt/rust-audio"]
+rust-dsp-rom-registry=[]
+rust-game-description=[]
+host = ["wprt/host"]
+rust-save-backup-flow = ["dep:wprt-save-backup"]
+rust-dsp-ax = ["dep:wprt-ax-driver"]
+all-modules = ["dep:wpgame_all"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wpgame_all = { package = "wpgame-all-link", path = "../../generated/game-code-link", optional = true }
+wprt = { path = "../wprt" }
+wprt-gx = { path = "../wprt-gx", features = ["lod-bias-patch"] }
+wprt-hw = { path = "../wprt-hw" }
+libc = "=0.2.190"
+wprt-ax-driver = { path = "../../generated/dsp-ax", optional = true }
+wprt-save-backup = { path = "../save-backup", optional = true }
+
+[profile.dev]
+overflow-checks = false
+[profile.release]
+overflow-checks = false
+opt-level = 1
+
+# Claude OPT P1: DOL crate at O2.
+[profile.release.package.wpgame-dol]
+opt-level = 2
+
+# Claude OPT B5: AX driver (recompiled DSP microcode) at O3 + inline exception early-out.
+[profile.release.package.wprt-ax-driver]
+opt-level = 3
+debug = "line-tables-only"
+
+# Claude OPT A2: optimize wgpu/naga/png inside the game DLL (were O1).
+[profile.release.package.wgpu]
+opt-level = 3
+[profile.release.package.wgpu-core]
+opt-level = 3
+[profile.release.package.wgpu-hal]
+opt-level = 3
+[profile.release.package.wgpu-types]
+opt-level = 3
+[profile.release.package.naga]
+opt-level = 3
+[profile.release.package.png]
+opt-level = 3
+
+# G8: exact original sampler LOD bias; supplied and owned by Claude.
+[patch.crates-io]
+wgpu-hal = { path = "../../third_party/wgpu-hal" }
+naga = { path = "../../third_party/naga" }
+
+[profile.release.package.stb_truetype_rust]
+opt-level = 3
+
+# G45: optimize accepted runtime/renderer/hardware only; generated game remains release opt1.
+[profile.release.package.wprt]
+opt-level = 3
+[profile.release.package.wprt-gx]
+opt-level = 3
+debug = "line-tables-only"
+[profile.release.package.wprt-hw]
+opt-level = 3

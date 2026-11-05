@@ -1,0 +1,19 @@
+[package]
+name = "wii-party-host"
+version = "0.0.1"
+edition = "2024"
+license = "GPL-3.0-or-later"
+autobins = false
+[[bin]]
+name = "wii-party"
+path = "src/hybrid_host.rs"
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["2d", "ui", "audio", "wav", "default_font", "bevy_pbr", "bevy_light", "bevy_mikktspace"] }
+wgpu = { version = "=30.0.1", default-features = false, features = ["wgsl"] }
+cpal = "=0.17.3"
+hound = "=3.5.1"
+libloading = "=0.8.9"
+wprt-gx = { path = "../wprt-gx", default-features = false, features = ["lod-bias-patch", "host-only"] }
+wprt-host-controller = { path = "../host-controller" }
+# Same pinned winit already used by Bevy; raw physical scancode API, offline cached.
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }

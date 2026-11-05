@@ -1,0 +1,15 @@
+[package]
+name = "wprt-ports"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+libc = "0.2"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "diff"
+path = "examples/diff.rs"

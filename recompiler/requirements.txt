@@ -1,0 +1,2 @@
+# Pure-Python dependency of recompiler/dsp (pinned; the launcher installs this exact wheel).
+pycparser==2.23

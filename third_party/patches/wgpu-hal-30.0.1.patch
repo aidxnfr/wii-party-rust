@@ -1,0 +1,59 @@
+--- a/wgpu-hal/src/dx12/adapter.rs
++++ b/wgpu-hal/src/dx12/adapter.rs
+@@ -485,6 +485,13 @@
+             | wgt::Features::PASSTHROUGH_SHADERS
+             | wgt::Features::EXTERNAL_TEXTURE
+             | wgt::Features::MEMORY_DECORATION_COHERENT;
++        // Project-local opt-in: Naga HLSL emits the original game's [earlydepthstencil].
++        // Force only; conservative variants explicitly error in the matching local Naga.
++        // Not a claim of general upstream DX12 early-depth feature completeness.
++        if std::env::var_os("WPGX_HOST_DX12_FORCE_EARLY").is_some() {
++            features |= wgt::Features::SHADER_EARLY_DEPTH_TEST;
++        }
++
+ 
+         //TODO: in order to expose this, we need to run a compute shader
+         // that extract the necessary statistics out of the D3D12 result.
+--- a/wgpu-hal/src/dx12/device.rs
++++ b/wgpu-hal/src/dx12/device.rs
+@@ -771,7 +771,7 @@
+             AddressU: conv::map_address_mode(desc.address_modes[0]),
+             AddressV: conv::map_address_mode(desc.address_modes[1]),
+             AddressW: conv::map_address_mode(desc.address_modes[2]),
+-            MipLODBias: 0f32,
++            MipLODBias: crate::lod_bias_patch::take_next_sampler_lod_bias(),
+             MaxAnisotropy: desc.anisotropy_clamp as u32,
+ 
+             ComparisonFunc: conv::map_comparison(desc.compare.unwrap_or_default()),
+--- a/wgpu-hal/src/lib.rs
++++ b/wgpu-hal/src/lib.rs
+@@ -2247,6 +2247,17 @@
+     pub range: wgt::ImageSubresourceRange,
+ }
+ 
++/// LOCAL PATCH (Wii Party wprt-gx, claude-gx): sampler MipLODBias for the next `create_sampler` on this thread, as f32 bits.
++/// D3D11/Vulkan/D3D12 samplers have a LOD bias field that wgpu 30 always sets to 0; GX texture LOD bias needs it exactly.
++#[cfg(any(dx12, vulkan))]
++pub mod lod_bias_patch {
++    use core::cell::Cell;
++    std::thread_local! { static NEXT: Cell<f32> = const { Cell::new(0.0) }; }
++    /// Set the bias used by the next sampler created on this thread (reset to 0 by the backend after use).
++    pub fn set_next_sampler_lod_bias(bias: f32) { NEXT.with(|c| c.set(bias)); }
++    pub fn take_next_sampler_lod_bias() -> f32 { NEXT.with(|c| c.replace(0.0)) }
++}
++
+ #[derive(Clone, Debug)]
+ pub struct SamplerDescriptor<'a> {
+     pub label: Label<'a>,
+--- a/wgpu-hal/src/vulkan/device.rs
++++ b/wgpu-hal/src/vulkan/device.rs
+@@ -1320,7 +1320,8 @@
+             .address_mode_v(conv::map_address_mode(desc.address_modes[1]))
+             .address_mode_w(conv::map_address_mode(desc.address_modes[2]))
+             .min_lod(desc.lod_clamp.start)
+-            .max_lod(desc.lod_clamp.end);
++            .max_lod(desc.lod_clamp.end)
++            .mip_lod_bias(crate::lod_bias_patch::take_next_sampler_lod_bias());
+ 
+         if let Some(fun) = desc.compare {
+             create_info = create_info

@@ -1,0 +1,11 @@
+pub const SDSP_SIZE:usize=66472;
+pub const SDSP_ALIGN:usize=8;
+pub const PC_OFFSET:usize=72;
+pub const IRAM_OFFSET:usize=352;
+pub const DRAM_OFFSET:usize=360;
+pub const IROM_OFFSET:usize=368;
+pub const COEF_OFFSET:usize=376;
+pub const TEMPLATE_SIZE:usize=120;
+pub const TEMPLATE_ALIGN:usize=8;
+pub const SIZE_OFFSET:usize=12;
+pub const SIZE_BYTES:usize=1;

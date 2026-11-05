@@ -1,0 +1,17 @@
+pub const SR_CARRY:u16=0x0001;
+pub const SR_OVERFLOW:u16=0x0002;
+pub const SR_ARITH_ZERO:u16=0x0004;
+pub const SR_SIGN:u16=0x0008;
+pub const SR_OVER_S32:u16=0x0010;
+pub const SR_TOP2BITS:u16=0x0020;
+pub const SR_LOGIC_ZERO:u16=0x0040;
+pub const SR_OVERFLOW_STICKY:u16=0x0080;
+pub const SR_100:u16=0x0100;
+pub const SR_INT_ENABLE:u16=0x0200;
+pub const SR_400:u16=0x0400;
+pub const SR_EXT_INT_ENABLE:u16=0x0800;
+pub const SR_1000:u16=0x1000;
+pub const SR_MUL_MODIFY:u16=0x2000;
+pub const SR_40_MODE_BIT:u16=0x4000;
+pub const SR_MUL_UNSIGNED:u16=0x8000;
+pub const SR_CMP_MASK:u16=0x3f;

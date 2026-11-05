@@ -1,0 +1,55 @@
+[package]
+name = "wprt"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Rust port of the arelkair/wiiparty-recomp runtime (cpu.h, memory.h, ...)"
+
+[lib]
+path = "src/lib.rs"
+
+[profile.dev]
+overflow-checks = false
+[profile.release]
+overflow-checks = false
+
+[features]
+trace = []
+comparison = []
+host = []
+# Optional exact host-service/counter fast path; preserves every poll boundary.
+host-poll-fastpath = ["host"]
+# Optional bounded exact-key lookup caches; registry writes invalidate before unlocking.
+lookup-cache = []
+# Claude OPT A3: normal play only - sleep (<=1 ms slices) instead of busy-spinning while the guest OS is idle. Never active under comparison; WP_IDLE_SPIN=1 disables.
+idle-nap = []
+# Claude OPT batch1 (runtime): input device-sample cache (normal play only), FMA fast path, quantizer inlining, and Codex's exact lookup-cache.
+opt-batch1 = ["lookup-cache"]
+rust-log = []
+rust-format = []
+rust-settings = []
+rust-si = []
+rust-exi = []
+rust-hollywood = []
+rust-io = ["rust-si", "rust-exi", "rust-hollywood"]
+rust-ios = []
+rust-ipc = ["rust-ios"]
+rust-nand = ["rust-settings"]
+rust-disc = []
+rust-padmap = ["rust-settings"]
+rust-keymap = []
+rust-input = ["rust-keymap", "rust-settings"]
+rust-gamepad = ["rust-padmap", "rust-settings"]
+rust-wiimote = ["rust-input", "rust-gamepad"]
+rust-bluetooth = ["rust-wiimote"]
+rust-real-wiimote = ["rust-wiimote"]
+rust-audio = ["rust-settings"]
+rust-dsp-runtime = ["rust-audio"]
+rust-dsp-host = ["rust-dsp-runtime"]
+rust-gx-state = []
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_System_Threading", "Win32_System_Diagnostics_Debug", "Win32_Security"] }
+
+[dependencies]
+libc = "=0.2.190"

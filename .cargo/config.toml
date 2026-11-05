@@ -1,0 +1,28 @@
+# Shared build configuration. Run cargo from the repository root (the launcher and tools/build.py do).
+# Toolchain locations under build/ are created by `python tools/build.py setup` (or by the launcher).
+
+[target.x86_64-pc-windows-gnu]
+# The game DLL targets Windows GNU and links with the pinned MinGW-w64 GCC (nuwen.net 20.0, GCC 15.2).
+linker = "build/toolchain/mingw/bin/g++.exe"
+ar = "build/toolchain/mingw/bin/ar.exe"
+rustflags = ["-Lnative=build/link-compat", "-C", "target-feature=+fma", "-C", "target-cpu=x86-64-v3", "--cap-lints", "allow"]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-cpu=x86-64-v3"]
+
+[env]
+# Locally generated game code (never committed).
+WP_GENERATED_DIR = { value = "generated", relative = true }
+# Struct layouts and tables measured from the Dolphin DSP sources, used by wprt-hw.
+WPRT_DSP_EXTRA_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_extra.rs", relative = true }
+WPRT_DSP_ACC_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_accelerator.rs", relative = true }
+WPRT_DSP_HW_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_hw_interface.rs", relative = true }
+WPRT_DSP_CORE_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_core.rs", relative = true }
+WPRT_DSP_INTERP_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_interpreter.rs", relative = true }
+WPRT_DSP_TABLES_DATA = { value = "crates/wprt-hw/layouts/dsp_tables.rs", relative = true }
+WPRT_NON_DSP_UI_LAYOUT = { value = "crates/wprt-hw/layouts/ui_screenshot.rs", relative = true }
+WPRT_DSP_BRANCH_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_branch.rs", relative = true }
+WPRT_DSP_MISC_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_misc.rs", relative = true }
+WPRT_DSP_MEMORY_MAP_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_memory_map.rs", relative = true }
+WPRT_DSP_STACKS_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_stacks.rs", relative = true }
+WPRT_FINAL_PROJECT_RUST = "1"

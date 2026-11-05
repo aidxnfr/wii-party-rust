@@ -1,0 +1,27 @@
+[package]
+name = "wprt-gx"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+publish = false
+# Rust port of arelkair/wiiparty-recomp engine/src/gpu/gx_render_common.cpp + gx_render.cpp (renderer backend, wgpu).
+# Claude's lane (see outputs/EXACT_CODEX_MAP.md LANES). No game code in this crate.
+
+[dependencies]
+wprt = { path = "../wprt", optional = true }
+wprt-ports = { path = "../wprt-ports" }
+wgpu = { version = "=30.0.1", default-features = false, features = ["dx12", "vulkan", "wgsl"] }
+# Only with feature lod-bias-patch: the root manifest must [patch.crates-io] wgpu-hal with claude-gx/wgpu-hal-lodbias
+# (adds the sampler MipLODBias that wgpu 30 hard-codes to 0). Without it, the bias is emulated by gradient scaling.
+wgpu-hal = { version = "=30.0.1", optional = true, default-features = false }
+# custom_textures::decode_png (replaces the WIC leaf); same version as in the offline cargo cache.
+png = "=0.18.1"
+
+[features]
+default = ["guest-runtime"]
+guest-runtime = ["dep:wprt"]
+host-only = []
+lod-bias-patch = ["dep:wgpu-hal"]
+
+[dev-dependencies]
+naga = { version = "=30.0.1", features = ["wgsl-in"] }

@@ -1,0 +1,30 @@
+# Build output
+/target/
+/build/
+**/target/
+
+# Everything produced from a game disc (never commit)
+/generated/
+*.iso
+*.wbfs
+*.rvz
+*.wia
+*.ciso
+*.gcm
+*.dol
+*.rel
+fixture-runs/
+captures/
+
+# Binaries and local files
+*.exe
+*.dll
+*.pdb
+*.a
+*.o
+*.zip
+__pycache__/
+*.pyc
+.vs/
+.idea/
+*.log

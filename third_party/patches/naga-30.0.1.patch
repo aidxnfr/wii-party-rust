@@ -1,0 +1,20 @@
+--- a/naga/src/back/hlsl/writer.rs
++++ b/naga/src/back/hlsl/writer.rs
+@@ -1654,6 +1654,17 @@
+             write!(self.out, "{header}")?;
+         }
+ 
++        // Project-local port of pristine gx_render.cpp create_pipeline:
++        // the early pixel shader is the SAME source with [earlydepthstencil].
++        if let Some(early) = ep.and_then(|entry| entry.early_depth_test) {
++            match early {
++                crate::EarlyDepthTest::Force => writeln!(self.out, "[earlydepthstencil]")?,
++                crate::EarlyDepthTest::Allow { .. } => return Err(super::Error::Unimplemented(
++                    "Project DX12 early-depth extension supports Force only; conservative depth is unsupported".into()
++                )),
++            }
++        }
++
+         if let Some(ref result) = func.result {
+             // Write typedef if return type is an array
+             let array_return_type = match module.types[result.ty].inner {

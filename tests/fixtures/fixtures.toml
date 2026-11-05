@@ -1,0 +1,63 @@
+# Deterministic replay fixtures: name -> input script and number of frames to record.
+# Run with tools/fixtures/run_fixture.py (docs/TESTING.md).
+[F1]
+script = "F1-h5.txt"
+frames = 18000
+# F2-F5: frame counts follow your gold runs (run once without --gold and use the frames.txt line count).
+[F6]
+script = "F6-freeplay2.txt"
+frames = 36000
+[F7]
+script = "F7-freeplay1.txt"
+frames = 36000
+[F8]
+script = "F8-freeplay3.txt"
+frames = 36000
+known_differences = ["frame 26259: NaN sign in memory (accepted)"]
+[F9]
+script = "F9-freeplay3b.txt"
+frames = 36000
+[F10]
+script = "F10-page1all.txt"
+frames = 97320
+known_differences = ["NaN-only rows (accepted)"]
+[F11]
+script = "F11-page2rest.txt"
+frames = 67440
+[F12]
+script = "F12-page3rest.txt"
+frames = 77400
+known_differences = ["NaN-only rows (accepted)"]
+[F13]
+script = "F13-v13.txt"
+frames = 75480
+[F14]
+script = "F14-v11.txt"
+frames = 156840
+[F15]
+script = "F15-pair1.txt"
+frames = 156840
+[F16]
+script = "F16-pair2.txt"
+frames = 143280
+[F17]
+script = "F17-pycycle.txt"
+frames = 23400
+[F18]
+script = "F18-pump.txt"
+frames = 23400
+[F19]
+script = "F19-page2gap.txt"
+frames = 39120
+[F20]
+script = "F20-globetrot.txt"
+frames = 19500
+[F21]
+script = "F21-swapmeet.txt"
+frames = 19500
+[F22]
+script = "F22-bingo.txt"
+frames = 19500
+[F23]
+script = "F23-boardisland.txt"
+frames = 19500

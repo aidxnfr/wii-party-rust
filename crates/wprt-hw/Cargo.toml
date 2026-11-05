@@ -1,0 +1,133 @@
+[package]
+name = "wprt-hw"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+publish = false
+[dependencies]
+wprt-final-unwind={path="../wprt-unwind",optional=true}
+wprt = { path = "../wprt", default-features = false }
+stb_truetype_rust = { path = "../stb-truetype", optional = true }
+windows-sys={version="=0.61.2",features=["Win32_Foundation","Win32_Storage_FileSystem","Win32_System_IO","Win32_Security","Win32_Graphics_Gdi","Win32_Graphics_Dwm","Win32_System_Registry","Win32_System_LibraryLoader","Win32_System_SystemInformation","Win32_UI_WindowsAndMessaging","Win32_UI_Input_KeyboardAndMouse"],optional=true}
+windows={version="=0.62.2",default-features=false,features=["Win32_Foundation","Win32_Media_Audio","Win32_Media_KernelStreaming","Win32_Media_Multimedia","Win32_System_Com","Win32_System_Com_StructuredStorage","Win32_System_Variant","Win32_System_Threading","Win32_Security"],optional=true}
+libc={version="=0.2.190",optional=true}
+[features]
+rust-host-keyboard = ["rust-host-gamepad","rust-input-adapter"]
+rust-host-gamepad = ["rust-gamepad-adapter","rust-host-sample-adapter","rust-host-io"]
+rust-png = []
+rust-video-transport = []
+rust-video-controls = ["rust-video-transport"]
+rust-mii-records = []
+rust-ui-text = []
+rust-screenshot = []
+rust-options-policy = []
+rust-options-state = ["rust-options-policy", "rust-ui-text"]
+rust-save-backup-helpers = []
+rust-options-window = ["rust-options-state"]
+
+rust-options-canvas = []
+rust-options-text = ["rust-options-canvas"]
+rust-options-titlebar = ["rust-options-text"]
+rust-options-render = ["rust-options-titlebar"]
+rust-save-adopt = []
+
+rust-stb = ["dep:stb_truetype_rust"]
+
+rust-font-io = ["rust-options-render"]
+
+rust-video-win32 = ["dep:windows-sys","rust-video-controls","rust-ui-text","rust-screenshot","rust-png"]
+
+rust-audio-win32 = ["dep:windows","dep:libc"]
+
+rust-input-sdl = ["wprt/rust-gamepad","wprt/rust-real-wiimote"]
+
+rust-fpu-leaf=[]
+rust-host-io=[]
+rust-dsp-stacks=[]
+rust-dsp-stacks-file=["rust-dsp-stacks"]
+rust-native-leaves=["rust-fpu-leaf","rust-host-io","rust-dsp-stacks"]
+
+rust-dsp-memory-map=[]
+rust-dsp-memory-map-file=["rust-dsp-memory-map"]
+rust-dsp-misc=[]
+rust-dsp-misc-file=["rust-dsp-misc"]
+rust-dsp-load-store=[]
+rust-dsp-branch=[]
+rust-dsp-branch-file=["rust-dsp-branch"]
+rust-dsp-interpreter-tables=[]
+rust-dsp-policies=["rust-dsp-memory-map","rust-dsp-misc","rust-dsp-load-store","rust-dsp-branch","rust-dsp-interpreter-tables"]
+
+rust-dsp-multiplier=[]
+rust-dsp-ext-ops=[]
+rust-dsp-arithmetic=[]
+rust-dsp-interpreter=[]
+rust-dsp-analyzer=[]
+rust-dsp-accelerator=[]
+rust-dsp-ifx=[]
+rust-dsp-metadata-tables=[]
+rust-dsp-engine-files=["rust-dsp-multiplier","rust-dsp-ext-ops","rust-dsp-arithmetic","rust-dsp-interpreter","rust-dsp-analyzer","rust-dsp-accelerator","rust-dsp-ifx","rust-dsp-metadata-tables"]
+
+rust-dsp-core-file=[]
+
+rust-scalar-adapters=[]
+rust-ipc-adapter=["dep:libc"]
+rust-log-adapter=[]
+
+# G21 eight complete adapter source policies;typed SDK marshalling retained.
+rust-host-sample-adapter=[]
+rust-runtime-bridge=[]
+rust-gamepad-adapter=[]
+rust-real-wiimote-adapter=["dep:libc"]
+rust-padmap-adapter=[]
+rust-exi-adapter=["dep:libc"]
+rust-bluetooth-adapter=["dep:libc"]
+rust-wiimote-adapter=["dep:libc"]
+
+# G22 source-compared host/UI adapters;SDK guard/task/string lifetimes retained.
+rust-gx-host-adapter=[]
+rust-ui-text-adapter=["rust-ui-text"]
+
+rust-input-adapter=["dep:libc"]
+
+rust-audio-adapter=["dep:libc"]
+
+rust-settings-adapter=[]
+
+rust-renderer-adapter=[]
+
+rust-ax-sdk-adapter=[]
+
+rust-options-window-adapter=[]
+
+rust-options-state-adapter=[]
+
+rust-video-adapter=["rust-video-win32"]
+
+rust-disc-adapter=["dep:libc"]
+
+rust-nand-adapter=["dep:libc"]
+
+rust-ios-adapter=["dep:libc"]
+
+rust-keymap-adapter=[]
+
+rust-mii-adapter=[]
+
+rust-options-render-adapter=[]
+
+rust-png-adapter=[]
+
+rust-screenshot-adapter=[]
+
+rust-dsp-host-adapter=["dep:libc"]
+
+rust-container-sdk-files=["rust-exi-adapter","rust-padmap-adapter","rust-png-adapter"]
+
+rust-dsp-extra-files=["rust-dsp-load-store","rust-dsp-multiplier","rust-dsp-ext-ops","rust-dsp-misc-file"]
+
+rust-dsp-last-files=["rust-dsp-arithmetic","rust-dsp-analyzer","rust-dsp-interpreter-tables","rust-dsp-misc-file"]
+
+rust-g60-batch4-files=["rust-ui-text-adapter","rust-screenshot-adapter"]
+rust-g60-batch5-files=[]
+
+rust-final-lifetimes=["rust-g60-batch4-files","rust-g60-batch5-files","dep:wprt-final-unwind"]

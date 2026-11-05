@@ -1,0 +1,6 @@
+pub const OPT_SIZE:usize=12304; pub const OPT_ALIGN:usize=8; pub const OPT_IROM:usize=0; pub const OPT_COEF:usize=8192; pub const OPT_CORE_TYPE:usize=12288; pub const CORE_TYPE_INTERP:u32=0;
+pub const IROM_WORDS:usize=4096; pub const COEF_WORDS:usize=2048; pub const CORE_SIZE:usize=132056; pub const CORE_DSP:usize=0; pub const CORE_INTERP:usize=132016;
+pub const S_PC:usize=72; pub const S_CONTROL:usize=74; pub const S_EXC:usize=92; pub const S_DRAM:usize=360; pub const S_IRAM:usize=352; pub const S_CRC:usize=384; pub const S_ANALYZER:usize=936; pub const A_FLAGS:usize=0;
+pub const R_AR:usize=0; pub const R_IX:usize=8; pub const R_WR:usize=16; pub const R_ST:usize=24; pub const R_CR:usize=32; pub const R_SR:usize=34; pub const R_PROD:usize=40; pub const R_AX:usize=48; pub const R_AC:usize=56; pub const REGS_SIZE:usize=72;
+pub const P_L:usize=0; pub const P_M:usize=2; pub const P_H:usize=4; pub const P_M2:usize=6; pub const AX_STRIDE:usize=4; pub const AC_STRIDE:usize=8; pub const MAILBOX_CPU:i32=0; pub const STEP_SKIP:usize=346;
+pub const PW_SIZE:usize=24; pub const PW_BUF:usize=0; pub const PW_MODE:usize=8; pub const PW_POS:usize=16; pub const PW_WRITE:i32=1; pub const PW_READ:i32=2; pub const TC_SIZE:usize=16; pub const TC_FN:usize=8; pub const DRAM_WORDS:u32=4096; pub const SR_MASK:u16=62719; pub const IROM_CHK:usize=16;

@@ -1,0 +1,1 @@
+pub const S_R:usize=0; pub const S_PC:usize=72; pub const S_CONTROL:usize=74; pub const S_EXC:usize=92; pub const S_DRAM:usize=360; pub const S_IRAM:usize=352; pub const S_IROM:usize=368; pub const SDSP_SIZE:usize=66472;

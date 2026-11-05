@@ -1,0 +1,9 @@
+pub const AR_OFFSET:usize=0;
+pub const IX_OFFSET:usize=8;
+pub const CR_OFFSET:usize=32;
+pub const AC_M_OFFSET:usize=58;
+pub const AC_STRIDE:usize=8;
+pub const PROD_L_OFFSET:usize=40;
+pub const PROD_M_OFFSET:usize=42;
+pub const PROD_H_OFFSET:usize=44;
+pub const PROD_M2_OFFSET:usize=46;

@@ -1,0 +1,27 @@
+// G60 batch5 (Claude): whole-member Rust ports of 19 SDK/adapter files; residue C++ objects linked via archive.
+#[path="native_g60_batch5_files/dsp_host_sdk/candidate.rs"]mod dsp_host_sdk;
+#[path="native_g60_batch5_files/options_state_sdk/candidate.rs"]mod options_state_sdk;
+#[path="native_g60_batch5_files/ios_sdk/candidate.rs"]mod ios_sdk;
+#[path="native_g60_batch5_files/keymap_sdk/candidate.rs"]mod keymap_sdk;
+#[path="native_g60_batch5_files/input_sdk/candidate.rs"]mod input_sdk;
+#[path="native_g60_batch5_files/settings_sdk/candidate.rs"]mod settings_sdk;
+#[path="native_g60_batch5_files/sdk_leaf/candidate.rs"]mod sdk_leaf;
+#[path="native_g60_batch5_files/bluetooth_sdk/candidate.rs"]mod bluetooth_sdk;
+#[path="native_g60_batch5_files/ax_forwarder/candidate.rs"]mod ax_forwarder;
+#[path="native_g60_batch5_files/ax_sdk/candidate.rs"]mod ax_sdk;
+#[path="native_g60_batch5_files/wiimote_sdk/candidate.rs"]mod wiimote_sdk;
+#[path="native_g60_batch5_files/real_wiimote_sdk/candidate.rs"]mod real_wiimote_sdk;
+#[path="native_g60_batch5_files/bridge_sdk/candidate.rs"]mod bridge_sdk;
+#[path="native_g60_batch5_files/overlay_sdk/candidate.rs"]mod overlay_sdk;
+#[path="native_g60_batch5_files/disc_sdk/candidate.rs"]mod disc_sdk;
+#[path="native_g60_batch5_files/gx_host_sdk/candidate.rs"]mod gx_host_sdk;
+#[path="native_g60_batch5_files/options_window_sdk/candidate.rs"]mod options_window_sdk;
+#[path="native_g60_batch5_files/renderer_sdk/candidate.rs"]mod renderer_sdk;
+#[path="native_g60_batch5_files/nand_sdk/candidate.rs"]mod nand_sdk;
+#[path="native_g60_batch5_files/mii_sdk/candidate.rs"]mod mii_sdk;
+#[path="native_g60_batch5_files/comparison_bridge/candidate.rs"]mod comparison_bridge;
+#[path="native_g60_batch5_files/comparison_frame/candidate.rs"]mod comparison_frame;
+#[path="native_g60_batch5_files/save_backup_forwarder/candidate.rs"]mod save_backup_forwarder;
+#[path="native_g60_batch5_files/options_render_sdk/candidate.rs"]mod options_render_sdk;
+#[path="native_g60_batch5_files/video_sdk/candidate.rs"]mod video_sdk;
+#[path="native_g60_batch5_files/boot_services/candidate.rs"]mod boot_services;

@@ -1,0 +1,12 @@
+pub const INTERPRETER_SIZE:usize=40;
+pub const INTERPRETER_ALIGN:usize=8;
+pub const CORE_SIZE:usize=132056;
+pub const CORE_ALIGN:usize=8;
+pub const PC_OFFSET:usize=72;
+pub const SR_OFFSET:usize=34;
+pub const CONTROL_OFFSET:usize=74;
+pub const ST_OFFSET:usize=24;
+pub const STACK_ENUM_SIZE:usize=4;
+pub const STACK_ENUM_ALIGN:usize=4;
+pub const INTERPRETER_CORE_OFFSET:usize=0;
+pub const CORE_STATE_OFFSET:usize=0;

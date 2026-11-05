@@ -1,0 +1,9 @@
+pub const INTERPRETER_SIZE:usize=40;
+pub const INTERPRETER_ALIGN:usize=8;
+pub const CORE_SIZE:usize=132056;
+pub const CORE_ALIGN:usize=8;
+pub const AR_OFFSET:usize=0;
+pub const IX_OFFSET:usize=8;
+pub const SR_OFFSET:usize=34;
+pub const INTERPRETER_CORE_OFFSET:usize=0;
+pub const CORE_STATE_OFFSET:usize=0;

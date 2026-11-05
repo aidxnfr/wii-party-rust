@@ -1,0 +1,7 @@
+# The PowerPC + DSP static recompiler this project is built on: arelkair/wiiparty-recomp.
+# Its scripts turn your own disc's code into C++; recompiler/rust and recompiler/dsp turn that C++ into Rust.
+# To move to a newer upstream: change `commit`, run `python recompiler/pipeline.py --disc <image>`,
+# then run the accuracy fixtures (docs/TESTING.md) before committing the new pin.
+repository = "https://github.com/arelkair/wiiparty-recomp"
+commit = "e8522be0ed4e1b09a2459f9e118e60cf8794baab"
+game = "wiiparty"
