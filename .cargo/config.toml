@@ -25,4 +25,5 @@ WPRT_DSP_BRANCH_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_branch.rs", relat
 WPRT_DSP_MISC_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_misc.rs", relative = true }
 WPRT_DSP_MEMORY_MAP_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_memory_map.rs", relative = true }
 WPRT_DSP_STACKS_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_stacks.rs", relative = true }
+WPRT_DSP_BATCH3_LAYOUT = { value = "crates/wprt-hw/layouts/dsp_batch3.rs", relative = true }
 WPRT_FINAL_PROJECT_RUST = "1"

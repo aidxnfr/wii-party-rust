@@ -62,18 +62,41 @@ pub fn run(o: &Options, tx: Sender<Event>) {
 // ---------- 1. source ----------
 fn unpack_source(c: &Ctx) -> R {
     let src = c.l.source();
-    // keep generated/ (your recompiled game code) and build/ (link helpers); replace everything else
-    if src.exists() {
-        for entry in std::fs::read_dir(&src).map_err(e("read source"))? {
-            let p = entry.map_err(e("read source"))?.path();
-            let name = p.file_name().unwrap().to_string_lossy().to_string();
-            if name == "generated" || name == "build" { continue; }
-            if p.is_dir() { std::fs::remove_dir_all(&p) } else { std::fs::remove_file(&p) }.map_err(e("clean old source"))?;
-        }
-    }
+    // Keep generated/ (your recompiled game code) and build/ (link helpers). Files whose content did not change are
+    // left untouched so their timestamps stay and cargo does not rebuild the game; changed files are rewritten and
+    // files no longer in this version are removed.
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(crate::payload::SOURCE)).map_err(e("open embedded source"))?;
-    zip.extract(&src).map_err(e("unpack source"))?;
-    c.line(format!("source {} unpacked to {}", crate::payload::REVISION, src.display()));
+    let mut wanted = std::collections::HashSet::new();
+    let (mut written, mut same) = (0usize, 0usize);
+    for i in 0..zip.len() {
+        let mut f = zip.by_index(i).map_err(e("read embedded source"))?;
+        let Some(rel) = f.enclosed_name() else { continue };
+        let dst = src.join(&rel);
+        wanted.insert(rel);
+        if f.is_dir() { std::fs::create_dir_all(&dst).map_err(e("unpack source"))?; continue; }
+        let mut data = Vec::with_capacity(f.size() as usize);
+        f.read_to_end(&mut data).map_err(e("read embedded source"))?;
+        if std::fs::read(&dst).is_ok_and(|old| old == data) { same += 1; continue; }
+        if let Some(parent) = dst.parent() { std::fs::create_dir_all(parent).map_err(e("unpack source"))?; }
+        std::fs::write(&dst, &data).map_err(e("unpack source"))?;
+        written += 1;
+    }
+    fn prune(dir: &Path, root: &Path, wanted: &std::collections::HashSet<PathBuf>) -> std::io::Result<()> {
+        for entry in std::fs::read_dir(dir)? {
+            let p = entry?.path();
+            let rel = p.strip_prefix(root).unwrap().to_path_buf();
+            if p.is_dir() {
+                if dir == root && (rel == Path::new("generated") || rel == Path::new("build")) { continue; }
+                prune(&p, root, wanted)?;
+                if std::fs::read_dir(&p)?.next().is_none() { std::fs::remove_dir(&p)?; }
+            } else if !wanted.contains(&rel) {
+                std::fs::remove_file(&p)?;
+            }
+        }
+        Ok(())
+    }
+    prune(&src, &src, &wanted).map_err(e("clean old source"))?;
+    c.line(format!("source {} unpacked to {} ({written} files updated, {same} unchanged)", crate::payload::REVISION, src.display()));
     Ok(())
 }
 
@@ -188,6 +211,10 @@ fn build_game(c: &Ctx) -> R {
     std::fs::create_dir_all(&compat).map_err(e("link-compat"))?;
     let libgcc = find_file(&c.l.tool("mingw"), "libgcc.a").ok_or("MinGW libgcc.a not found")?;
     std::fs::copy(&libgcc, compat.join("libgcc_eh.a")).map_err(e("link-compat"))?;
+    // build scripts and proc macros (host programs) do not get the target's -L flags, so also put it next to libgcc.a,
+    // where MinGW's linker always looks
+    let beside = libgcc.with_file_name("libgcc_eh.a");
+    if !beside.exists() { std::fs::copy(&libgcc, &beside).map_err(e("link-compat"))?; }
     let features: Vec<String> = std::fs::read_to_string(src.join("crates/game/features.txt")).map_err(e("features.txt"))?
         .lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).map(String::from).collect();
     let path = std::env::join_paths([c.l.mingw_bin(), c.l.cargo_home().join("bin")].into_iter()

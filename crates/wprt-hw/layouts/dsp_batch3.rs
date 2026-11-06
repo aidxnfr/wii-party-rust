@@ -1,0 +1,13 @@
+pub const AC_M_OFFSET:usize=58;
+pub const AC_STRIDE:usize=8;
+pub const AX_L_OFFSET:usize=48;
+pub const AX_H_OFFSET:usize=50;
+pub const AX_STRIDE:usize=4;
+pub const ANALYZER_SIZE:usize=65536;
+pub const ANALYZER_ALIGN:usize=1;
+pub const OPCODE_OFFSET:usize=8;
+pub const OP_SIZE_OFFSET:usize=12;
+pub const OP_EXTENDED_OFFSET:usize=112;
+pub const MEMBER_SIZE:usize=16;
+pub const MEMBER_ALIGN:usize=8;
+pub const ANALYZER_FLAGS_OFFSET:usize=0;
