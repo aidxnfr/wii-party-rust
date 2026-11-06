@@ -6,15 +6,28 @@ use sha2::{Digest, Sha256};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
+use std::sync::Arc;
 
 pub enum Event { Step(usize, usize, String), Line(String), Done(Result<(), String>) }
 
-pub struct Options { pub root: PathBuf, pub disc: Option<PathBuf>, pub jobs: usize, pub offline: bool }
+pub struct Options {
+    pub root: PathBuf,
+    pub disc: Option<PathBuf>,
+    pub jobs: usize,
+    pub offline: bool,
+    /// set from the UI to stop the install; checked between steps, during downloads and while tools run
+    pub cancel: Arc<AtomicBool>,
+}
+
+/// Error text used when the user cancelled.
+pub const CANCELLED: &str = "cancelled";
 
 pub struct Ctx<'a> { pub l: Layout, pub o: &'a Options, pub tx: Sender<Event> }
 impl Ctx<'_> {
     pub fn line(&self, s: impl Into<String>) { let _ = self.tx.send(Event::Line(s.into())); }
+    pub fn cancelled(&self) -> bool { self.o.cancel.load(Ordering::Relaxed) }
 }
 
 type R = Result<(), String>;
@@ -29,6 +42,7 @@ pub fn run(o: &Options, tx: Sender<Event>) {
         std::fs::create_dir_all(&o.root).map_err(e("create install folder"))?;
         let steps: [fn(&Ctx) -> R; 5] = [unpack_source, get_tools, recompile, build_game, finish];
         for (i, step) in steps.iter().enumerate() {
+            if c.cancelled() { return Err(CANCELLED.into()); }
             let _ = tx.send(Event::Step(i + 1, steps.len(), STEPS[i].to_string()));
             step(&c)?;
         }
@@ -75,6 +89,7 @@ fn download(c: &Ctx, t: &Tool) -> Result<PathBuf, String> {
     let mut f = std::fs::File::create(&tmp).map_err(e("write download"))?;
     let (mut got, mut next) = (0u64, 0u64); let mut buf = vec![0u8; 1 << 16];
     loop {
+        if c.cancelled() { drop(f); let _ = std::fs::remove_file(&tmp); return Err(CANCELLED.into()); }
         let n = reader.read(&mut buf).map_err(e(t.url))?; if n == 0 { break; }
         f.write_all(&buf[..n]).map_err(e("write download"))?; got += n as u64;
         if got >= next { next = got + (16 << 20);
@@ -212,10 +227,30 @@ pub fn run_cmd(c: &Ctx, cmd: &mut Command, what: &str) -> R {
     #[cfg(windows)] { use std::os::windows::process::CommandExt; cmd.creation_flags(0x0800_0000); } // no console window
     let mut child = cmd.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(|err| format!("{what}: {err}"))?;
     let (out, err) = (child.stdout.take().unwrap(), child.stderr.take().unwrap());
-    let tx2 = c.tx.clone();
-    let t = std::thread::spawn(move || for l in BufReader::new(err).lines().map_while(Result::ok) { let _ = tx2.send(Event::Line(l)); });
-    for l in BufReader::new(out).lines().map_while(Result::ok) { c.line(l); }
-    let _ = t.join();
-    let status = child.wait().map_err(|err| format!("{what}: {err}"))?;
-    if status.success() { Ok(()) } else { Err(format!("could not {what} (exit code {:?}); see the log above", status.code())) }
+    let (tx1, tx2) = (c.tx.clone(), c.tx.clone());
+    let t1 = std::thread::spawn(move || for l in BufReader::new(out).lines().map_while(Result::ok) { let _ = tx1.send(Event::Line(l)); });
+    let t2 = std::thread::spawn(move || for l in BufReader::new(err).lines().map_while(Result::ok) { let _ = tx2.send(Event::Line(l)); });
+    let status = loop {
+        if let Some(s) = child.try_wait().map_err(|err| format!("{what}: {err}"))? { break s; }
+        if c.cancelled() {
+            kill_tree(&mut child);
+            let _ = (t1.join(), t2.join());
+            return Err(CANCELLED.into());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    };
+    let _ = (t1.join(), t2.join());
+    if status.success() { Ok(()) } else { Err(format!("could not {what} (exit code {:?}); see the details", status.code())) }
+}
+
+/// Stop a tool and everything it started (cargo starts rustc/gcc, the recompiler starts workers).
+fn kill_tree(child: &mut std::process::Child) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let _ = Command::new("taskkill").args(["/T", "/F", "/PID", &child.id().to_string()]).creation_flags(0x0800_0000)
+            .stdout(Stdio::null()).stderr(Stdio::null()).status();
+    }
+    let _ = child.kill();
+    let _ = child.wait();
 }

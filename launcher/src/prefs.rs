@@ -13,12 +13,14 @@ pub struct Prefs {
     /// extra in-between frames for smooth motion (0 = off; adds latency, see docs/SMOOTH_MOTION.md)
     pub smooth_motion: u32,
     pub show_stats: bool,
+    /// launcher look: "system", "light" or "dark"
+    pub theme: String,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
         let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
-        Self { install_dir: crate::paths::default_root(), disc: None, jobs: cores.clamp(1, 8), offline: false, smooth_motion: 0, show_stats: false }
+        Self { install_dir: crate::paths::default_root(), disc: None, jobs: cores.clamp(1, 8), offline: false, smooth_motion: 0, show_stats: false, theme: "system".into() }
     }
 }
 
