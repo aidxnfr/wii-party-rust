@@ -22,6 +22,16 @@ def log(msg: str) -> None:
     print(f"[pipeline] {msg}", flush=True)
 
 
+def progress(f: float) -> None:
+    """Machine-readable progress for the launcher (0..1 over the whole pipeline)."""
+    print(f"@@progress {min(max(f, 0.0), 1.0):.4f}", flush=True)
+
+
+# Share of the pipeline's time each stage takes (rough, measured on a 6-core PC); used only for the progress bar.
+STAGES = {"upstream": (0.00, 0.02), "extract": (0.02, 0.08), "recompile": (0.08, 0.50), "translate": (0.50, 0.97), "dsp": (0.97, 1.00)}
+RECOMPILE_SPLIT = [0.06, 0.28, 0.50, 0.06, 0.10]  # unpack_rels, recomp, recomp_rel --all, recomp, recomp_dsp
+
+
 def run(cmd, cwd=None, env=None) -> None:
     log(" ".join(str(c) for c in cmd))
     r = subprocess.run([str(c) for c in cmd], cwd=cwd, env=env)
@@ -70,7 +80,9 @@ def main() -> int:
     cfg = tomllib.loads((HERE / "upstream.toml").read_text(encoding="utf-8"))
     out = a.out.resolve(); out.mkdir(parents=True, exist_ok=True)
     up = out / "upstream"
+    progress(STAGES["upstream"][0])
     fetch_upstream(cfg, up)
+    progress(STAGES["extract"][0])
     game = up / "games" / cfg["game"]
     extracted = game / "extracted"
     if a.extracted:
@@ -86,14 +98,17 @@ def main() -> int:
     if boot[:len(want)] != want:
         sys.exit(f"this disc is {boot}, not Wii Party ({want})")
     log(f"disc {boot} OK")
+    progress(STAGES["recompile"][0])
     # 3. upstream recompiler (C++)
     cpp = up / "build" / cfg["game"] / "generated"
     marker = out / ".wp-recompiled"
     if a.force or not marker.exists() or marker.read_text().strip() != cfg["commit"]:
         env = dict(os.environ, WP_GAME=cfg["game"])
-        for step in (["recompiler/unpack_rels.py"], ["recompiler/recomp.py"], ["recompiler/recomp_rel.py", "--all"],
-                     ["recompiler/recomp.py"], ["recompiler/dsp/recomp_dsp.py"]):
+        lo, hi = STAGES["recompile"]; done = 0.0
+        for share, step in zip(RECOMPILE_SPLIT, (["recompiler/unpack_rels.py"], ["recompiler/recomp.py"], ["recompiler/recomp_rel.py", "--all"],
+                                                  ["recompiler/recomp.py"], ["recompiler/dsp/recomp_dsp.py"])):
             run([sys.executable] + step, cwd=up, env=env)
+            done += share; progress(lo + (hi - lo) * done)
         marker.write_text(cfg["commit"] + "\n")
     # 4-5. Rust translation; redone when the C++ or our translator changes
     ours = list((HERE / "rust").glob("*.py")) + list((HERE / "dsp").rglob("*.py")) + list((HERE / "dsp" / "runtime").glob("*.rs"))
@@ -102,9 +117,13 @@ def main() -> int:
     if a.force or not stamp.exists() or stamp.read_text() != key:
         for d in ("game-code", "game-code-link", "dsp-ax"):
             shutil.rmtree(out / d, ignore_errors=True)
-        run([sys.executable, HERE / "rust" / "translate.py", cpp, out])
+        progress(STAGES["translate"][0])
+        lo, hi = STAGES["translate"]
+        run([sys.executable, HERE / "rust" / "translate.py", cpp, out], env=dict(os.environ, WP_PROGRESS_RANGE=f"{lo} {hi}"))
+        progress(STAGES["dsp"][0])
         run([sys.executable, HERE / "dsp" / "build_ax.py", up, cpp / "dsp" / "ax.cpp", out / "dsp-ax"])
         stamp.write_text(key)
+    progress(1.0)
     log(f"generated code ready in {out}")
     return 0
 

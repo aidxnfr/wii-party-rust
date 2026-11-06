@@ -28,7 +28,7 @@ const PAGE_PAD_X: f32 = 48.0;
 const PAGE_PAD_TOP: f32 = 44.0;
 const CONTENT_MAX: f32 = 720.0;
 /// Rough share of the install time each step takes, for the progress bar.
-const STEP_WEIGHT: [f32; 5] = [0.02, 0.10, 0.25, 0.60, 0.03];
+const STEP_WEIGHT: [f32; 5] = [0.01, 0.06, 0.25, 0.66, 0.02];
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -71,6 +71,7 @@ fn cli(args: &[String]) -> i32 {
                 match ev {
                     Event::Step(n, t, s) => println!("== [{n}/{t}] {s}"),
                     Event::Line(l) => println!("{l}"),
+                    Event::Progress(_) => {}
                     Event::Done(Ok(())) => { p.save(); return 0; }
                     Event::Done(Err(e)) => { eprintln!("error: {e}"); return 1; }
                 }
@@ -108,6 +109,14 @@ struct App {
     show_details: bool,
     license: usize,
     disc_line: Option<String>,
+    /// how far the running step is (0..1), from the installer
+    step_frac: f32,
+    /// when each step started and how long finished steps took
+    step_started: Option<std::time::Instant>,
+    step_seconds: Vec<Option<f64>>,
+    /// smoothed estimate of the seconds left, and when it was last updated
+    eta: Option<f64>,
+    eta_at: Option<std::time::Instant>,
 }
 
 impl App {
@@ -116,6 +125,7 @@ impl App {
             prefs: Prefs::load(), page: Page::Game, page_since: 0.0, dark: None, rx: None, cancel: Arc::new(AtomicBool::new(false)),
             states: vec![StepState::Waiting; STEPS.len()], current: None, log: Vec::new(), outcome: Outcome::None,
             result: String::new(), error: String::new(), progress_view: false, show_details: false, license: 0, disc_line: None,
+            step_frac: 0.0, step_started: None, step_seconds: vec![None; STEPS.len()], eta: None, eta_at: None,
         }
     }
     fn busy(&self) -> bool { self.rx.is_some() }
@@ -146,6 +156,11 @@ impl App {
         self.error.clear();
         self.progress_view = true;
         self.disc_line = None;
+        self.step_frac = 0.0;
+        self.step_started = None;
+        self.step_seconds = vec![None; STEPS.len()];
+        self.eta = None;
+        self.eta_at = None;
     }
 
     fn poll(&mut self) {
@@ -154,12 +169,18 @@ impl App {
         while let Ok(ev) = rx.try_recv() {
             match ev {
                 Event::Step(n, _, s) => {
-                    if let Some(c) = self.current { self.states[c] = StepState::Done; }
+                    if let Some(c) = self.current {
+                        self.states[c] = StepState::Done;
+                        self.step_seconds[c] = self.step_started.map(|t| t.elapsed().as_secs_f64());
+                    }
+                    self.step_frac = 0.0;
+                    self.step_started = Some(std::time::Instant::now());
                     self.current = Some(n - 1);
                     self.states[n - 1] = StepState::Running;
                     self.log.push(format!("== {s}"));
                 }
                 Event::Line(l) => self.log.push(l),
+                Event::Progress(f) => self.step_frac = self.step_frac.max(f),
                 Event::Done(r) => done = Some(r),
             }
         }
@@ -168,7 +189,13 @@ impl App {
             self.rx = None;
             match r {
                 Ok(()) => {
+                    if let Some(c) = self.current { self.step_seconds[c] = self.step_started.map(|t| t.elapsed().as_secs_f64()); }
                     for s in &mut self.states { *s = StepState::Done; }
+                    // remembered so the next update can tell how long the long steps take on this PC
+                    if self.step_seconds.iter().all(Option::is_some) {
+                        self.prefs.step_seconds = self.step_seconds.iter().map(|s| s.unwrap_or(0.0)).collect();
+                        self.prefs.save();
+                    }
                     self.outcome = Outcome::Success;
                     self.result = "The game is installed.".into();
                     self.progress_view = false;
@@ -186,7 +213,31 @@ impl App {
         if self.outcome == Outcome::Success { return 1.0; }
         let Some(c) = self.current else { return 0.0 };
         let before: f32 = STEP_WEIGHT[..c].iter().sum();
-        if self.states[c] == StepState::Done { before + STEP_WEIGHT[c] } else { before }
+        if self.states[c] == StepState::Done { before + STEP_WEIGHT[c] } else { before + STEP_WEIGHT[c] * self.step_frac.min(1.0) }
+    }
+
+    /// Seconds left: the running step at its own measured speed, the steps after it from the last install on this PC
+    /// when known, otherwise at the running step's speed scaled by their usual share of the time.
+    fn seconds_left(&self) -> Option<f64> {
+        let c = self.current?;
+        let elapsed = self.step_started?.elapsed().as_secs_f64();
+        let f = self.step_frac as f64;
+        let last = &self.prefs.step_seconds;
+        let known = |i: usize| last.get(i).copied().filter(|s| *s > 0.0);
+        let here = if f >= 0.02 && elapsed >= 15.0 { elapsed * (1.0 - f) / f }
+                   else { known(c).map(|s| (s - elapsed).max(0.0))? };
+        let speed = (STEP_WEIGHT[c] as f64 * f.max(0.02)) / elapsed.max(1.0); // weight per second
+        let later: f64 = (c + 1..STEPS.len()).map(|i| known(i).unwrap_or(STEP_WEIGHT[i] as f64 / speed.max(1e-9))).sum();
+        Some(here + later)
+    }
+
+    /// Smoothed so the number does not jump around; updated once a second.
+    fn update_eta(&mut self) {
+        if !self.busy() { self.eta = None; return; }
+        if self.eta_at.is_some_and(|t| t.elapsed().as_secs_f64() < 1.0) { return; }
+        self.eta_at = Some(std::time::Instant::now());
+        let Some(new) = self.seconds_left() else { return };
+        self.eta = Some(match self.eta { Some(old) => (old - 1.0).max(0.0) * 0.8 + new * 0.2, None => new });
     }
 
     // ---------- frame ----------
@@ -424,7 +475,20 @@ impl App {
         let frac = self.progress();
         ui::progress_bar(ui, Id::new("install-progress"), frac, width, 6.0);
         ui::gap(ui, 10.0);
-        ui::text(ui, &format!("{}%", (frac * 100.0).round() as i32), Font::Semibold, ui::size::DETAIL, p.text, None);
+        let under = ui.cursor().min;
+        ui::text(ui, &format!("{}%", (frac * 100.0).floor() as i32), Font::Semibold, ui::size::DETAIL, p.text, None);
+        if running {
+            self.update_eta();
+            let left = match self.eta {
+                Some(s) if s < 90.0 => "About a minute left".to_string(),
+                Some(s) => {
+                    let m = (s / 60.0).ceil() as i64;
+                    if m >= 120 { format!("About {} h {} min left", m / 60, m % 60) } else { format!("About {m} minutes left") }
+                }
+                None => "Estimating time left".to_string(),
+            };
+            ui::paint_text(ui, pos2(under.x + width, under.y), egui::Align2::RIGHT_TOP, &left, Font::Regular, ui::size::DETAIL, p.secondary);
+        }
         ui::gap(ui, 24.0);
 
         let footer = 36.0 + 24.0;
@@ -449,6 +513,15 @@ impl App {
                 let ink = match state { StepState::Waiting => p.tertiary, StepState::Failed => p.danger, _ => p.text };
                 let f = if state == StepState::Running { Font::Semibold } else { Font::Regular };
                 ui::paint_text(ui, pos2(r.min.x + 36.0, r.center().y), egui::Align2::LEFT_CENTER, title, f, ui::size::BODY - 0.5, ink);
+                if state == StepState::Running && self.step_frac > 0.0 {
+                    let pct = format!("{}%", (self.step_frac * 100.0).floor() as i32);
+                    ui::paint_text(ui, pos2(r.max.x - 14.0, r.center().y), egui::Align2::RIGHT_CENTER, &pct, Font::Semibold, ui::size::DETAIL, p.secondary);
+                } else if state == StepState::Done {
+                    if let Some(secs) = self.step_seconds[i] {
+                        let t = if secs < 60.0 { format!("{secs:.0} s") } else { format!("{} min", (secs / 60.0).round() as i64) };
+                        ui::paint_text(ui, pos2(r.max.x - 14.0, r.center().y), egui::Align2::RIGHT_CENTER, &t, Font::Regular, ui::size::DETAIL, p.tertiary);
+                    }
+                }
             }
             ui::gap(ui, (steps_h - 30.0 * n - 8.0).max(8.0));
         });

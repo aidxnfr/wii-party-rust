@@ -15,12 +15,14 @@ pub struct Prefs {
     pub show_stats: bool,
     /// launcher look: "system", "light" or "dark"
     pub theme: String,
+    /// how long each install step took last time on this PC (seconds), for the time-left estimate
+    pub step_seconds: Vec<f64>,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
         let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
-        Self { install_dir: crate::paths::default_root(), disc: None, jobs: cores.clamp(1, 8), offline: false, smooth_motion: 0, show_stats: false, theme: "system".into() }
+        Self { install_dir: crate::paths::default_root(), disc: None, jobs: cores.clamp(1, 8), offline: false, smooth_motion: 0, show_stats: false, theme: "system".into(), step_seconds: Vec::new() }
     }
 }
 

@@ -24,6 +24,19 @@ def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
+class Progress:
+    """Prints `@@progress` lines for the launcher, by share of C++ bytes translated (WP_PROGRESS_RANGE="lo hi")."""
+    def __init__(self, total: int):
+        r = os.environ.get("WP_PROGRESS_RANGE")
+        self.lo, self.hi = (float(x) for x in r.split()) if r else (None, None)
+        self.total, self.done = max(total, 1), 0
+
+    def add(self, n: int) -> None:
+        self.done += n
+        if self.lo is not None:
+            print(f"@@progress {self.lo + (self.hi - self.lo) * self.done / self.total:.4f}", flush=True)
+
+
 def run_cpp2rs(module: str, dst: Path, srcs: list, header: list, desc=None) -> None:
     args = [sys.executable, str(CPP2RS)] + (["--module-cpp", str(desc)] if desc else []) + [module, str(dst)] + [str(s) for s in srcs]
     r = subprocess.run(args, capture_output=True, text=True)
@@ -57,9 +70,13 @@ def main() -> int:
     parts = sorted(f for f in os.listdir(dd) if re.match(r"dol_\d+\.cpp$", f))
     dol_src = code / "dol" / "src" / "dol"
     mod_rs = ["// GENERATED (Claude). PRIVATE. The main executable (DOL)."]
+    modules = sorted(p.name for p in (gen / "modules").iterdir() if p.is_dir())
+    module_srcs = {m: sorted(gen / "modules" / m / f for f in os.listdir(gen / "modules" / m) if re.match(rf"{m}_\d+\.cpp$", f)) for m in modules}
+    bar = Progress(sum((dd / f).stat().st_size for f in parts) + sum(p.stat().st_size for s in module_srcs.values() for p in s))
     for f in parts:
         n = f[:-4]
         run_cpp2rs("dol", dol_src / f"{n}.rs", [dd / f], ["use wprt::wp::{self, Cpu};", "#[allow(unused_imports)] use super::*;", ""])
+        bar.add((dd / f).stat().st_size)
         mod_rs += [f"mod {n};", f"pub use {n}::*;"]
     ft = (dd / "function_table.cpp").read_text(errors="replace")
 
@@ -74,12 +91,12 @@ def main() -> int:
     write(code / "dol" / "src" / "lib.rs", "pub mod dol;\n")
     write(code / "dol" / "Cargo.toml", crate_toml("wpgame-dol", f'wprt = {{ path = "{WPRT}" }}\n'))
     # --- REL modules ---
-    modules = sorted(p.name for p in (gen / "modules").iterdir() if p.is_dir())
     for m in modules:
         md = gen / "modules" / m
-        srcs = sorted(md / f for f in os.listdir(md) if re.match(rf"{m}_\d+\.cpp$", f))
+        srcs = module_srcs[m]
         dst = code / "mods" / m / "src" / "lib.rs"
         run_cpp2rs(m, dst, srcs, ["use wprt::wp::{self, Cpu};", "#[allow(unused_imports)] use wpgame_dol::dol::*;", ""], md / f"{m}_module.cpp")
+        bar.add(sum(p.stat().st_size for p in srcs))
         write(code / "mods" / m / "Cargo.toml", crate_toml(f"wpgame-mod-{m}", f'wprt = {{ path = "../{WPRT}" }}\nwpgame-dol = {{ path = "../../dol" }}\n'))
     # --- link crate + descriptor table ---
     deps = [f'wprt = {{ path = "../../crates/wprt" }}', 'wpgame-dol = { path = "../game-code/dol" }'] + \
