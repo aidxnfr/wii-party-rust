@@ -38,6 +38,7 @@ class Progress:
 
 
 def run_cpp2rs(module: str, dst: Path, srcs: list, header: list, desc=None) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)  # cpp2rs writes the file but does not create its folder
     args = [sys.executable, str(CPP2RS)] + (["--module-cpp", str(desc)] if desc else []) + [module, str(dst)] + [str(s) for s in srcs]
     r = subprocess.run(args, capture_output=True, text=True)
     last = (r.stderr.strip().splitlines() or ["(no output)"])[-1]
