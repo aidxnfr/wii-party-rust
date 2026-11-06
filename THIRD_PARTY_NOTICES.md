@@ -9,6 +9,8 @@ This project is GPL-3.0-or-later. It includes or is derived from:
 | [wgpu, naga](https://github.com/gfx-rs/wgpu) | MIT OR Apache-2.0 | renderer; patched copies in `third_party/` |
 | [Bevy](https://github.com/bevyengine/bevy) | MIT OR Apache-2.0 | host application |
 | [egui / eframe](https://github.com/emilk/egui) | MIT OR Apache-2.0 | launcher UI |
+| [Inter](https://github.com/rsms/inter) 4.1 | SIL OFL 1.1 (`launcher/assets/fonts/OFL.txt`) | launcher typeface |
+| [wiiparty-recomp launcher](https://github.com/arelkair/wiiparty-recomp) | GPL-3.0 | launcher look and layout, ported to egui |
 | [stb_truetype](https://github.com/nothings/stb) (Rust port) | Public domain / MIT | font rasterizing (`crates/stb-truetype`) |
 | [SDL](https://github.com/libsdl-org/SDL) | zlib | downloaded at install; gamepads |
 | [nod / nodtool](https://github.com/encounter/nod) | MIT OR Apache-2.0 | downloaded at install; disc extraction |
