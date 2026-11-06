@@ -95,9 +95,15 @@ def main() -> int:
         run([a.nodtool, "extract", a.disc, extracted])
     boot = (extracted / "sys" / "boot.bin").read_bytes()[:6].decode("ascii", "replace")
     want = tomllib.loads((game / "game.toml").read_text(encoding="utf-8"))["id"]
-    if boot[:len(want)] != want:
-        sys.exit(f"this disc is {boot}, not Wii Party ({want})")
-    log(f"disc {boot} OK")
+    # Any region of Wii Party: same game code (SUP) and maker (01), the region letter may differ. Upstream supports
+    # SUPP01 (Europe) and SUPE01 (USA); their main.dol is identical and only two minigame RELs differ, which are
+    # translated from the user's own disc like everything else. Japanese and Korean discs are untested.
+    if boot[:3] != want[:3] or boot[4:6] != want[4:6]:
+        sys.exit(f"this disc is {boot}, not Wii Party ({want[:3]}x{want[4:6]})")
+    region = {"P": "Europe", "E": "USA", "J": "Japan", "K": "Korea"}.get(boot[3], boot[3])
+    if boot[3] not in "PE":
+        log(f"warning: the {region} version of Wii Party has not been tested")
+    log(f"disc {boot} ({region}) OK")
     progress(STAGES["recompile"][0])
     # 3. upstream recompiler (C++)
     cpp = up / "build" / cfg["game"] / "generated"
