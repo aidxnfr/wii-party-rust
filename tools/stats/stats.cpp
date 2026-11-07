@@ -1,5 +1,6 @@
 // Claude OPT: live performance stats window for Wii Party Rust. stats.exe <runtime.log>
-// Reads per-thread CPU, memory of wii-party-hybrid.exe and tails the game's runtime.log once per 500 ms. No admin needed.
+// stats.exe <runtime.log> [game pid]. Reads per-thread CPU, memory of the game (the pid the launcher passes, else
+// wii-party.exe / wii-party-hybrid.exe by name) and tails the game's runtime.log once per 500 ms. No admin needed.
 #define UNICODE
 #include <windows.h>
 #include <psapi.h>
@@ -20,9 +21,12 @@ static void saveInterp(int v) { g_interp = v; FILE* f = _wfopen(g_interpPath.c_s
 struct T { DWORD id; double pct; std::wstring name; }; static std::vector<T> g_threads;
 typedef HRESULT (WINAPI *GTD)(HANDLE, PWSTR*);
 static ULONGLONG ft(const FILETIME& f) { return ((ULONGLONG)f.dwHighDateTime << 32) | f.dwLowDateTime; }
+static DWORD g_given = 0;  // pid from the launcher; used while that process is alive
 static DWORD findPid() {
+    if (g_given) { HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, g_given); DWORD code = 0;
+        bool alive = h && GetExitCodeProcess(h, &code) && code == STILL_ACTIVE; if (h) CloseHandle(h); if (alive) return g_given; g_given = 0; }
     HANDLE s = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); PROCESSENTRY32W e; e.dwSize = sizeof e; DWORD pid = 0;
-    if (s != INVALID_HANDLE_VALUE && Process32FirstW(s, &e)) do { if (!_wcsicmp(e.szExeFile, L"wii-party-hybrid.exe")) pid = e.th32ProcessID; } while (Process32NextW(s, &e));
+    if (s != INVALID_HANDLE_VALUE && Process32FirstW(s, &e)) do { if (!_wcsicmp(e.szExeFile, L"wii-party.exe") || !_wcsicmp(e.szExeFile, L"wii-party-hybrid.exe")) pid = e.th32ProcessID; } while (Process32NextW(s, &e));
     if (s != INVALID_HANDLE_VALUE) CloseHandle(s); return pid;
 }
 static std::wstring widen(const std::string& s) { int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), nullptr, 0); std::wstring w(n, 0); MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), &w[0], n); return w; }
@@ -126,7 +130,7 @@ static LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     return DefWindowProcW(h, msg, w, l);
 }
 int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR cmd, int show) {
-    int argc; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc); if (argc > 1) g_log = argv[1];
+    int argc; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc); if (argc > 1) g_log = argv[1]; if (argc > 2) g_given = (DWORD)_wtoi(argv[2]);
     { size_t s = g_log.find_last_of(L"\\/"); g_interpPath = (s == std::wstring::npos ? std::wstring() : g_log.substr(0, s + 1)) + L"interp.txt"; loadInterp(); }
     WNDCLASSW wc = {}; wc.lpfnWndProc = proc; wc.hInstance = inst; wc.lpszClassName = L"WiiPartyStats"; wc.hCursor = LoadCursor(nullptr, IDC_ARROW); RegisterClassW(&wc);
     g_wnd = CreateWindowExW(0, L"WiiPartyStats", L"Wii Party - Performance stats", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 560, 680, nullptr, nullptr, inst, nullptr);

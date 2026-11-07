@@ -22,8 +22,8 @@ pub fn play(l: &Layout, p: &Prefs) -> Result<(), String> {
         .env("WP_LOG_FILE", &log).env("WP_INTERP_FILE", data.join("interp.txt"))
         .env("WII_PARTY_SDL3", l.game().join("SDL3.dll")).env("WII_PARTY_PRIVATE_ROOT", data.join("private"));
     for k in ["WPGX_HOST_SHARED_MINIMAL", "WPGX_HOST_GPU_CPU_VIEW", "WP_GAMEPAD", "WP_INPUT_SCRIPT", "WP_DETERMINISTIC", "WP_COMPARE_LOG"] { cmd.env_remove(k); }
-    cmd.spawn().map_err(|e| format!("could not start the game: {e}"))?;
+    let game = cmd.spawn().map_err(|e| format!("could not start the game: {e}"))?;
     let stats = l.game().join("stats.exe");
-    if p.show_stats && stats.exists() { let _ = Command::new(stats).arg(&log).spawn(); }
+    if p.show_stats && stats.exists() { let _ = Command::new(stats).arg(&log).arg(game.id().to_string()).spawn(); }
     Ok(())
 }
