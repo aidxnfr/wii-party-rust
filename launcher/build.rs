@@ -37,8 +37,11 @@ fn main() {
             std::fs::write(out.join("wii-party.exe"), b"").unwrap();
         }
     }
-    let rev = std::process::Command::new("git").args(["rev-parse", "--short=12", "HEAD"]).current_dir(&root).output().ok()
-        .filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_else(|| "dev".into());
+    // WP_REVISION (set for release builds) names the commit; otherwise ask git
+    println!("cargo:rerun-if-env-changed=WP_REVISION");
+    let git = || std::process::Command::new("git").args(["rev-parse", "--short=12", "HEAD"]).current_dir(&root).output().ok()
+        .filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    let rev = std::env::var("WP_REVISION").ok().filter(|r| !r.is_empty()).or_else(git).unwrap_or_else(|| "dev".into());
     println!("cargo:rustc-env=WP_REVISION={rev}");
     println!("cargo:rerun-if-changed=../.git/HEAD");
 }
