@@ -1,6 +1,9 @@
 # Builds the host (wii-party.exe) and the launcher on every push; on a version tag (v*) it publishes a release
 # with wii-party-launcher.exe (source + host embedded). The game DLL itself is built on each player's PC from their disc.
 name: build
+permissions:
+  contents: write   # publish releases on version tags
+
 on:
   push:
     branches: [main]
@@ -35,9 +38,20 @@ jobs:
         with:
           name: wii-party-launcher
           path: target/release/wii-party-launcher.exe
+      - name: Release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          # docs/releases/<tag>.md holds each release's notes; the launcher's checksum is added at the end
+          $notes = "docs/releases/${{ github.ref_name }}.md"
+          if (-not (Test-Path $notes)) { $notes = "CHANGELOG.md" }
+          $hash = (Get-FileHash target/release/wii-party-launcher.exe -Algorithm SHA256).Hash.ToLower()
+          (Get-Content $notes -Raw) + "`n**wii-party-launcher.exe** sha256: ``$hash```n" | Set-Content release-body.md -Encoding utf8
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }}
           files: target/release/wii-party-launcher.exe
-          body_path: CHANGELOG.md
+          body_path: release-body.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
