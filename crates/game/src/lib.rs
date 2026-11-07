@@ -31,7 +31,6 @@ extern "C"{
     fn wpg_hw_exi_mount(nand:*const c_char);fn wpg_hw_disc_mount(path:*const c_char)->bool;
     fn wpg_hw_video_start();fn wpg_hw_ipc_report();
 }
-}};}
 // port of the original DOL registration tables; module package supplies identical typed function/resume slices.
 fn register_guest_dol(){for &(address,function)in dol::FUNCTIONS{runtime::register(address,function);}for &(address,function)in dol::RESUMES{runtime::register_resume(address,function);}}
 // H4 ABI revision is a host protocol version, not a guest value.
